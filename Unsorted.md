@@ -12,11 +12,6 @@ These are the little news snippets you find under your chart on the main screen
 - Gather list of cards			GET  /midlands/notifications/stack/
 - Dismiss Card					POST /midlands/notifications/stack/$cardId/dismiss/
 
-# Dividends
-
-- Get Dividend					GET /dividends/$dividendId/
-- Get Dividends					GET /dividends/						{cursor}
-
 # Portfolio and Positions
 
 - List Portfolios               GET /portfolios/
