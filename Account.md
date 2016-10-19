@@ -44,7 +44,7 @@ A [paginated](#pagination) list of accounts is returned. Accounts contain the fo
 | Key                           | Type     | Description |
 |-------------------------------|----------|-------------|
 | deactivated      				| Boolean  | Whether the account has been deactivated |
-| updated_at       				| ISO 8601 | Last time the account was modified |
+| updated_at       				| ISO 8601 | Last time the account was modified (such as account changes) |
 | margin_balances  				| Hash     | See below |
 | portfolio        				| URL      | Endpoint for this portfolio |
 | cash_balances    				| Hash     | See below |
@@ -58,7 +58,7 @@ A [paginated](#pagination) list of accounts is returned. Accounts contain the fo
 | user 							| URL      | Link back to the basic [user data endpoint](#gather-basic-user-info) |
 | max_ach_early_access_amount	| Float    | Amount of cash you may use before the actual transfer completes. Instant accounts have early access to a certain amount of funds, although this also applies to the first $1,000 worth of deposits into the account as well. |
 | cash_held_for_orders 			| Float    | Amount of cash in outstanding buy orders. |
-| only_position_closing_trades  | Boolean  |  Google 'investopedia close position' |
+| only_position_closing_trades  | Boolean  | if `true`,  this account can only sell existing shares |
 | url 							| URL 	   | Endpoint where more information about this account may be grabbed |
 | positions						| URL 	   | Endpoint where you may grab the past/current positions held by this account |
 | created_at					| ISO 8601 | Date this account was created |
@@ -89,14 +89,14 @@ If the account type is not margin this value is `null`.
 
 | Key                                    | Type     | Description |
 |----------------------------------------|----------|-------------|
-| day_trade_buying_power                 | Float    | This is the total amount of money marked for use in outstanding and new buy orders. This value is readjusted before the start of each trading day. |
+| day_trade_buying_power                 | Float    | Amount of buying power available to place trades on the current trading day. |
 | created_at                             | ISO 8601 | When was the margin account created |
 | overnight_buying_power_held_for_orders | Float    | How much overnight buying power is held for orders |
-| cash_held_for_orders                   | Float    | How much cash is held for orders |
-| day_trade_buying_power_held_for_orders | Float    | How much day trade buyign power is held for orders |
+| cash_held_for_orders                   | Float    | How much cash is held for buy orders |
+| day_trade_buying_power_held_for_orders | Float    | How much day trade buying power is held for orders |
 | marked_pattern_day_trader_date         | ISO 8601 | Date which the account was flagged as a pattern day trader (PDT), `null` otherwise |
-| cash                                   | Float    | Amount of cash including unsettled funds |
-| unallocated_margin_cash                | Float    | Amount of unallocated margin cash on hand for purchasing securities |
+| cash                                   | Float    | Amount of cash available (not including unsettled funds) |
+| unallocated_margin_cash                | Float    | Amount of cash (inclding margin) on hand for purchasing securities |
 | updated_at                             | ISO 8601 | Date the values were last updated. This is generally updated when an order is placed, and/or deposits/withdrawals made. |
 | cash_available_for_withdrawal          | Float    | Amount of cash available for withdrawal |
 | margin_limit                           | Float    | Maximum amount of money you can borrow. Robinhood Instant has 0 |
@@ -106,6 +106,9 @@ If the account type is not margin this value is `null`.
 | day_trade_ratio                        | Float    | |
 | overnight_ratio                        | Float    | |
 
+### Notes
+- `day_trade_buying_power`:  This value is readjusted before the start of each trading day, and can be raised intraday by depositing additional funds. The amount deducted depends on the stock's day trading ratio (example: buying $100 of a normal stock will deduct $25 from day trade buying power, while buying $100 of a 3x ETF will deduct $75 from that).
+- `unallocated_margin_cash` includes your margin, cash, unsettled funds, and uncleared deposits.
 
 **Response sample**
 
