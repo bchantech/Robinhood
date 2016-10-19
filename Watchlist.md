@@ -55,7 +55,7 @@ Fields are returned as a hash with the following keys:
 
 # Bulk Add Instruments by Symbol
 
-You can add multiple instruments to a watchlist as a comma separated list of symbols.
+You can add multiple instruments at the end of a watchlist as a comma separated list of symbols. Invalid or unlisted instruments will not be processed.
 
 **Method**
 
@@ -115,10 +115,41 @@ Fields are returned as a list of hashes which contain the following for each add
 }]
 ```
 
+# Rearrange Symbols
+
+You can rearrange symbols in your watchlist in a manner similar to editing a portfolio on Google Finance,
+except you use instrument ids.
+
+Instruments that are already on the list during this operation will not have their `created_at` timestamp changed.
+
+**Method**
+
+| URI                                                     | HTTP Method | Authentication |
+|---------------------------------------------------------|-------------|----------------|
+| api.robinhood.com/watchlists/{watchlist_name}/reorder/  | POST        | *Yes*          |
+
+**Fields**
+
+| Parameter     | Type   | Description                                       | Default |Required|
+|---------------|--------|---------------------------------------------------|---------|--------|
+| uuids       | String | Comma separated list of instruments | N/A     | *Yes*  |
+
+**Response**
+
+Returns an empty object.
+
+**Request sample**
+
+```
+curl -v https://api.robinhood.com/watchlists/Default/bulk_add/ \
+   -H "Accept: application/json" \
+   -H "Authorization: Token a9a7007f890c790a30a0e0f0a7a07a0242354114" \
+   -d uuids=931a0395-53d2-46a2-910b-863ba6eb9521,5873dbaf-672d-46b2-9722-57ee58506460
+```
+
 # TODO
 
 - Get Watchlist instruments		GET /watchlists/$watchlistName/?cursor=$cursor
 - Add instrument to watchlist	POST /watchlists/$instrumentId/
 - Get Watchlists				GET /watchlists/
 - Delete Instrument				DELETE /watchlists/$watchlistName/$instrumentId/
-- Reorder Watchlist				POST /watchlists/$watchlistName/reorder/	{ids}
