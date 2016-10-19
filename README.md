@@ -1,4 +1,4 @@
-# Unofficial Documentation of Robinhood Trade's Private API
+# Unofficial Documentation of Robinhood Trading API
 
 Table of Contents:
 
@@ -25,37 +25,57 @@ Things I have yet to organize are in [Unsorted.md](Unsorted.md)
 
 # Introduction
 
-[Robinhood](http://robinhood.com/) is a free, online securities brokerage. As you would expect, being an online service means everything is handled through a request that is made to a specific URL.
+[Robinhood](http://robinhood.com/) is a free, online securities brokerage offering trading with zero commissions. As you would expect, being an online service means everything is handled through a request that is made to a specific URL.
 
-Before I go too far, I must say that this is a big messy work in progress. I'll continue to update this as I figure more out. Sections marked TODO are in my head but I haven't found the time to describe them yet. Work in progress and all.
+This is considered to be unofficial documentation; although attempts will be made to provide accurate information, there is no guarantee that any of the endpoints listed in this document will work under the current version of the API. 
 
-Oh, and I do not work with or for Robinhood Finacial, LLC.
+I do not work with or for Robinhood Financial, LLC.
 
-# API Security
+# Authentication
 
-The HTTPS protocol is used to access the Robinhood API. Transactions require security because most calls transmit actual account informaion. SSL Pinning in used in the official Android and IOS apps to prevent MITM attacks; you would be wise to do the same at the very least.
+Authentication is required to access most endpoints on the API. It can be done through two methods:
 
-Calls to API endpoints make use of two different levels of authentication:
-
-1. **None**: No authentication. Anyone can query the method.
-2. **Token**: Requires an authorization token generated with a call to [log in](Authenticatin.md#log-in).
-
-Calls which require no authentication are generally informational ([quote gathering](Quote.md#quote-methods), [securities lookup](#instrument-methods), etc.).
+- **Token**: Authenticate through a token generated with a call to [log in](Authentication.md#log-in).
+- **Oauth2**: Authenticate through an app (an app can automatically read and execute actions on your behalf).
 
 Authorized calls require an `Authorization` HTTP Header with the authentication type set as `Token` (Example: `Authorization: Token 40charauthozationtokenherexxxxxxxxxxxxxx`).
 
+Generally, you should use your personal API token to access your account and/or for developing personal apps, as it has unrestricted access to all information in your account. You'll want to use Oauth2 if you're building a consumer app, or if you are using another integration, as the user can securely login to the app using Robinhood, and can limit what actions can be done within the app.
+
+SSL Pinning in used in the official Android and iOS apps to prevent MITM attacks.
+
+# Versioning
+
+The API version that is being used to return the data is indicated by the `X-Robinhood-API-Version` header (with the exception of the `quotes` and `fundamentals` endpoints).
+
+There is currently no known interface to retrieve a particular version of the API, and endpoints may change at any time.
+
 # API Error Reporting
 
-The API reports incorrect data or imporper use with HTTP staus codes and JSON objects returned as body content. Some that I've run into include:
+The API reports incorrect data or improper use with HTTP staus codes and JSON objects returned as body content. More than one error can be thrown in a response. Some endpoints do not return errors.
+
+Currently, no machine-readable error codes are returned. Generally, if an error exists in a field it will be under the parameter, or under `non_field_errors` if the error isn't in a specific parameter. If there is an error processing the request, specific details will be under `detail`. 
+
+Examples of errors include:
 
 | HTTP Status | Key                | Value | What I Did Wrong |
 |-------------|--------------------|-------|------------------|
 | 400         | `non_field_errors` | `["Unable to log in with provided credentials."]` | Attempted to [log in](#logging-in) with incorrect username/password |
 | 400         | `password`         | `["This field may not be blank."]`                | Attempted to [log in](#logging-in) without a password |
 | 401         | `detail`           | `["Invalid token."]`                              | Attempted to use cached token after [logging out](#logging-out) |
-| 400         | `password`           | `["This password is too short. It must contain at least 10 characters.", "This password is too common."]`                                                       | Attempted to [change my password](#password-reset) to `password` |
+| 400         | `password`          | `["This password is too short. It must contain at least 10 characters.", "This password is too common."]`                                    | Attempted to [change my password](#password-reset) to `password` |
+| 400         | `{value}`           | `[" \\\'value'\\\ is not a valid choice."]` | TBA
+| 400         | `{value}`           | `["A valid number is required."]` | TBA
+| 400         | `{value}`           | `["This field is required."]` | Not including a required field on a GET or POST request
+| 400         | `{value}`           | `["Invalid hyperlink - No URL match."]` | entering a invalid site for a value that expects a URL
+| 404         | `detail`            | `["Not found."]` | Resource does not exist.
+| 429         | `detail`            | `"Request was throttled."` | Empty POST to `/watchlists/`
+| 500         | N/A                 | Server Error | Passing in a malformed cursor that is parsable
+| 501         | N/A                 | Server Error | Nothing
 
-...you get the idea. Letting you know exactly what went wrong makes the API almost self-documenting so thanks Robinhood.
+# Rate Limits
+
+In the event you are calling a particular endpoint too many times, or you are accessing a locked-down endpoint (such as POST to `/watchlists/` to create a new watchlist) the call will return a 429 error. Rate limits are not specified per endpoint.
 
 # Pagination
 
@@ -92,4 +112,4 @@ To get the next page of results, just use the `next` URL.
 
 ## Semi-Pagination
 
-Some data is returned as a list of `results` as if they were paginate but the API doesn't supply us with `previous` or `next` keys.
+Some data is returned as a list of `results` as if they were paginated but `previous` and `next` keys will be null since they cannot be traversed using cursor-based pagination.
