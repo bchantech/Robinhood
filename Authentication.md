@@ -23,6 +23,8 @@ If you plan to do much beyond requesting [quote data](#quote-methods), you'll ne
 |-----------|--------|---------------|---------|----------|
 | username  | String | Your username | N/A     | **Yes**  |
 | password  | String | Uh, password  | N/A     | **Yes**  |
+| mfa_code  | String | MFA Code      | N/A     | See below |
+| backup_code  | String | Backup code  | N/A     | See below |
 
 **Request sample**
 
@@ -45,6 +47,10 @@ curl -v https://api.robinhood.com/api-token-auth/ \
   "token": "a9a7007f890c790a30a0e0f0a7a07a0242354114"
 }
 ```
+
+### Handling Multi-Factor Authentication
+
+If two-factor authentication is enabled for this account, instead of returning a token, it will return `mfa_required` and `mfa_type`. You should then call the the `/api-token-auth/` endpoint again with either the code that is returned to you on your authenticated device (as `mfa_code`) or your backup code (as `backup_code`); if everything checks out, you will then receive a token as normal.
 
 ## Logging out
 
