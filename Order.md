@@ -1,6 +1,8 @@
 # Order
 
-Odds are, you'll want to actually order securities. If so, you're in the right place.
+Allows you to order various securities.
+
+All endpoints on this page requires authentication.
 
 - [Place an Order](#place-an-order)
 - [Gather Order Information](#gather-order-information)
@@ -8,33 +10,31 @@ Odds are, you'll want to actually order securities. If so, you're in the right p
 - [Cancel an Order](#cancel-an-order)
 - [Todo](#todo)
 
-# Place an Order
+## Place an Order
+
+`POST /orders`
 
 Buy and sell shares of securities!
 
-**Method**
+### Request Parameters
 
-| URI                       | HTTP Method | Authentication |
-|---------------------------|-------------|----------------|
-| api.robinhood.com/orders/ | POST        | *Yes*          |
 
-**Fields**
+| Parameter     | Type   | Description                                         		          |Required|
+|---------------|--------|--------------------------------------------------------------------|--------|
+| account       | URL    | Account to make this order with      				              | yes    |
+| instrument    | URL    | Instrument URL of the security you're attempting to buy or sell    | yes    |
+| symbol        | String | The ticker symbol of the security you're attmepting to buy or sell | yes    |
+| type 		    | String | Order type: `market` or `limit`                                    | yes    |
+| time_in_force | String | `gfd`, `gtc`                                                       | yes    |
+| trigger	    | String | `immediate`, `stop`, or `on_close`                                 | yes    |
+| price		    | Float  | The price you're willing to accept in a sell or pay in a buy       | yes    |
+| stop_price    | Float  | The price at which an order with a `stop` trigger converts         | Only when `trigger` equals `stop` |
+| quantity      | Int    | Number of shares you would like to buy or sell                     | yes    |
+| extended_hours  | Bool   | Place an extended-hours order | no |
+| side          | String | `buy` or `sell`                                                    | yes    |
+| client_id     | String | Only available for OAuth applications                              | no     |
 
-| Parameter     | Type   | Description                                         		          | Default |Required|
-|---------------|--------|--------------------------------------------------------------------|---------|--------|
-| account       | URL    | Account to make this order with      				              | N/A     | *Yes*  |
-| instrument    | URL    | Instrument URL of the security you're attempting to buy or sell    | N/A     | *Yes*  |
-| symbol        | String | The ticker symbol of the security you're attmepting to buy or sell | N/A     | *Yes*  |
-| type 		    | String | Order type: `market` or `limit`                                    | N/A     | *Yes*  |
-| time_in_force | String | `gfd`, `gtc`, `ioc`, `fok` or `opg`                                | N/A     | *Yes*  |
-| trigger	    | String | `immediate`, `stop`, or `on_close`                                 | N/A     | *Yes*  |
-| price		    | Float  | The price you're willing to accept in a sell or pay in a buy       | N/A     | Only when `type` equals `limit`   |
-| stop_price    | Float  | The price at which an order with a `stop` trigger converts         | N/A     | Only when `trigger` equals `stop` |
-| quantity      | Int    | Number of shares you would like to buy or sell                     | N/A     | *Yes*  |
-| side          | String | `buy` or `sell`                                                    | N/A     | *Yes*  |
-| client_id     | String | Only available for OAuth applications                              | N/A     | No     |
-
-**Request sample**
+#### Request Sample
 
 ```
 curl -v https://api.robinhood.com/orders/ \
@@ -50,28 +50,50 @@ curl -v https://api.robinhood.com/orders/ \
    -d side=sell
 ```
 
-**Response**
+### Response Details
 
-Fields are returned as well as the following:
+Upon a successful submitted order, the following information is returned:
 
 | Key          		| Type     | Description |
 |-------------------|----------|-------------|
-| updated_at        | ISO 8601 |  |
-| executions        | Array    | This is a list of hashes |
-| fees              | Float    | Total fees including. Generally `0.00` |
+| updated_at        | ISO 8601 | Date the order was last updated |
+| ref_id            | Unknown  | |
+| time_in_force     | Unknown  | `gfd` or `gtc` |
+| fees              | Float    | Total fees for this trade. |
 | cancel            | URL      | If this is not `null`, you can `POST` to this URL to cancel the order |
 | id                | String   | Internal id of this order |
 | cumulative_quantity | Float  | Number of shares which have executed so far |
+| stop_price        | Float    | Price which a stop order activates. `null` if not applicable |
 | reject_reason     | String   ||
+| instrument        | URL      | URL of the instrument that is traded in this order
 | state             | String   |  `queued`, `unconfirmed`, `confirmed`, `partially_filled`, `filled`, `rejected`, `canceled`, or `failed` |
-| last_transaction_at | ISO 8601 ||
-| client_id         | String ||
-| url               | URL | Link to this order with up to date information |
+| trigger           | String   | `immediate`, `stop`, or `on_close` |
+| type              | String   | The order type |
+| last_transaction_at | ISO 8601 | Last time a transaction took place (includes created, cancelled, or filled order) |
+| price             | String   | The price specified for that order      
+| executions        | Array    | This is a list of Execution objects, details listed below |
+| extended_hours    | Bool     | Is this order active during extended hours? |
+| account           | URL      | Endpoint for the account executing the order |
+| url               | URL      | Endpoint for this specific order |
 | created_at        | ISO 8601 | Time the order was placed |
-| position          | URL | Link to positions for this account with this instrument |
-| average_price     | Float | Average price of all shares executed so far |
+| side              | String   | `buy` or `sell` |
+| position          | URL      | Link to positions for this account with this instrument |
+| average_price     | Float    | Average price of all shares executed so far; `null` for cancelled or rejected orders |
+| quantity          | Float    | The quantity of shares bought/sold |
 
-**Response sample**
+The exeuction array contains objects with the following information:
+
+| Key          		| Type     | Description |
+|-------------------|----------|-------------|
+| timestamp         | ISO 8601 | The time this execution was made
+| price             | Float    | The price this execution was made
+| settlement_date   | ISO 8601 | Date this execution settles
+| quantity          | Float    | The quantity of shares in this execution
+| id                | String   | Internal id of this execution |
+
+If there was a problem with submitting the order, specific details of this error will be in `detail`.
+
+#### Response Sample
 
 ```
 {
@@ -100,55 +122,42 @@ Fields are returned as well as the following:
     "quantity": "1.00000"
 }
 ```
-# Gather Order Information
 
-This returns the work status and related information.
+### Notes 
+- When an order is placed and accepted by the RH backend, state will initially be `unconfirmed` until it is updated to another state.
+- At this time, you will not be able to sell (or place sell orders on) more shares than you own. 
+- `canceled` orders also refer to GTD orders which expired and possibly orders canceled after a split. 
+- `ioc` and `fok` are valid choices but are not valid `time_in_force` parameters.
+- `price` and `stop_price` must have no more than two decimal places of precision if the price is higher than 1, and
+four otherwise. If you are using a market sell order, price can be `null`.
+- The `updated_at` value also updates when order execution emails are sent as well; in some cases there
+can be a substantial time difference between when the order was actually sent and when it tells you otherwise.
 
-**Method**
+## Gather Order Information
 
-| URI                                 | HTTP Method | Authentication |
-|-------------------------------------|-------------|----------------|
-| api.robinhood.com/orders/{order_id} | GET         | *Yes*          |
-
-**Fields**
-
-AFAIK, there are none.
-
-**Request sample**
-
-```
-curl -v https://api.robinhood.com/user/employment/ \
-   -H "Accept: application/json" \
-   -H "Authorization: Token a9a7007f890c790a30a0e0f0a7a07a0242354114"
-```
-
-**Response**
-
-See the response to [placing an order](#place-an-order).
-
-**Response sample**
-
-See the response sample to [placing an order](#place-an-order).
+`GET /orders/{order_id}`
 
 ### Gather Recent Orders
 
-This returns the work status and related information.
+`GET /orders/`
 
-**Method**
+This returns the most recent orders.
 
-| URI                       | HTTP Method | Authentication |
-|---------------------------|-------------|----------------|
-| api.robinhood.com/orders/ | GET         | *Yes*          |
+### Request Parameters
 
-**Parameters**
+| Parameter       | Type     | Description                         		          |Required|
+|-----------------|----------|----------------------------------------------------|--------|
+| updated_at[gte] | ISO 8601 | Timestamp of earliest order we want information on | No     |
+| instrument      | URL      | Returns orders that contain this instrument		  | No     |
+| cursor          | String   | Orders are returned as a paginated list            | No     |
 
-| Parameter       | Type     | Description                         		          | Default |Required|
-|-----------------|----------|----------------------------------------------------|---------|--------|
-| updated_at[gte] | ISO 8601 | Timestamp of earliest order we want information on | N/A     | No     |
-| instrument      | String   | Instrument we want information on (ID not Url)     | N/A     | No     |
-| cursor          | String   | Orders are returned as a paginated list            | N/A     | No     |
+### Notes
 
-**Request sample**
+A workaround for implementing updated_at is to specify the date in the cursor parameter.
+
+Example: If we want orders after Jul 1st, we encode `p=2016-07-01&r=1` to base64 and pass the resulting value `cD0yMDE2LTA3LTAxJnI9MQ%3D%3D` for cursor
+
+#### Request sample
 
 ```
 curl -v https://api.robinhood.com/orders/ \
@@ -156,27 +165,15 @@ curl -v https://api.robinhood.com/orders/ \
    -H "Authorization: Token a9a7007f890c790a30a0e0f0a7a07a0242354114"
 ```
 
-**Response**
+### Response Details
 
-TODO
 
-**Response sample**
+## Cancel an Order
 
-TODO
+`POST /orders/{order_id}/cancel/`
 
-# Cancel an Order
+Allows you to cancel an order.
 
-This returns the work status and related information.
-
-**Method**
-
-| URI                                         | HTTP Method | Authentication |
-|---------------------------------------------|-------------|----------------|
-| api.robinhood.com/orders/{order_id}/cancel/ | POST         | *Yes*          |
-
-**Fields**
-
-AFAIK, there are none.
 
 **Request sample**
 
@@ -195,7 +192,3 @@ See the response to [placing an order](#place-an-order).
 
 See the response sample to [placing an order](#place-an-order).
 
-# TODO
-
-- Get Orders					GET /orders/?updated_at=[gte]&cursor=[$cursor]
-- Get Orders By Instrument		GET /orders/?updated_at=[gte]&cursor=[$cursor]&instrument=$instrument
