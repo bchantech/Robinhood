@@ -30,7 +30,7 @@ Buy and sell shares of securities!
 | price		    | Float  | The price you're willing to accept in a sell or pay in a buy       | yes    |
 | stop_price    | Float  | The price at which an order with a `stop` trigger converts         | Only when `trigger` equals `stop` |
 | quantity      | Int    | Number of shares you would like to buy or sell                     | yes    |
-| extended_hours  | Bool   | Place an extended-hours order | no |
+| extended_hours  | Bool   | Allows the order to fill during extended hours | no |
 | side          | String | `buy` or `sell`                                                    | yes    |
 | client_id     | String | Only available for OAuth applications                              | no     |
 
@@ -132,6 +132,7 @@ If there was a problem with submitting the order, specific details of this error
 four otherwise. If you are using a market sell order, price can be `null`.
 - The `updated_at` value also updates when order execution emails are sent as well; in some cases there
 can be a substantial time difference between when the order was actually sent and when it tells you otherwise.
+- Extended hours allow orders to fill between 9:00AM-3:00PM ET. You must explicitly set `extended_hours` to true on any orders you want active after market hours; having Robinhood Gold does _not_ automatically allow your orders to execute during after hours. Only limit orders are active during after hours.
 
 ## Gather Order Information
 
